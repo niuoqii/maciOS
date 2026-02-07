@@ -1,0 +1,50 @@
+name: Build Unsigned IPA
+on: [push, workflow_dispatch]
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Dependencies (CocoaPods)
+        run: |
+          if [ -f "Podfile" ]; then
+            pod install
+          fi
+
+      - name: Build App
+        run: |
+          # We use -workspace if a .xcworkspace exists (common with Pods), 
+          # otherwise we use -project.
+          if [ -d "maciOS.xcworkspace" ]; then
+            FILE_FLAG="-workspace maciOS.xcworkspace"
+          else
+            FILE_FLAG="-project maciOS.xcodeproj"
+          endif
+
+          xcodebuild build \
+            $FILE_FLAG \
+            -scheme "maciOS" \
+            -sdk iphoneos \
+            -configuration Release \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            -derivedDataPath build
+
+      - name: Package IPA
+        run: |
+          mkdir Payload
+          # Finds the .app bundle inside the build folder
+          cp -r build/Build/Products/Release-iphoneos/*.app Payload/
+          zip -r maciOS.ipa Payload
+
+      - name: Upload IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: Unsigned-maciOS-IPA
+          path: maciOS.ipa
