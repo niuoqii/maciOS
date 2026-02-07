@@ -18,15 +18,14 @@ jobs:
 
       - name: Build App
         run: |
-          # We use -workspace if a .xcworkspace exists (common with Pods), 
-          # otherwise we use -project.
+          # Bash uses 'fi' to close an 'if' block
           if [ -d "maciOS.xcworkspace" ]; then
             FILE_FLAG="-workspace maciOS.xcworkspace"
           else
             FILE_FLAG="-project maciOS.xcodeproj"
-          endif
+          fi
 
-          xcodebuild build \
+          xcodebuild clean build \
             $FILE_FLAG \
             -scheme "maciOS" \
             -sdk iphoneos \
@@ -39,7 +38,6 @@ jobs:
       - name: Package IPA
         run: |
           mkdir Payload
-          # Finds the .app bundle inside the build folder
           cp -r build/Build/Products/Release-iphoneos/*.app Payload/
           zip -r maciOS.ipa Payload
 
